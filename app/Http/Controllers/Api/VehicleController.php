@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\Dealer;
 use App\Models\Vehicle;
+use App\Models\Inventory;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\VehicleRequest;
@@ -11,31 +13,33 @@ use Illuminate\Support\Facades\Storage;
 class VehicleController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of the resource. combine vehicle, model, and brand
      */
     public function index(Request $request)
     {
-        // Query builder instance
-        $query = Vehicle::query();
+        $query = Vehicle::with(['models.brand']);
 
-        // Cater Search use "keyword"
-        // if ($request->keyword) {
-        //     $query->where(function ($query) use ($request) {
-        //         $query->where('price', 'like', '%' . $request->keyword . '%');
-        //         // ->orWhere('price', 'like', '%' . $request->keyword . '%');
-        //     });
-        // }
-
-        if ($request->has('min_price') && $request->has('max_price')) {
-            $query->whereBetween('price', [$request->min_price, $request->max_price]);
+        // Search by "Keyword" (brand_name or price)
+        if ($request->has('keyword')) {
+            $query->where(function ($query) use ($request) {
+                // Check if the keyword is numeric (assumed to be a price)
+                if (is_numeric($request->keyword)) {
+                    $query->whereHas('models.brand', function ($query) use ($request) {
+                        $query->where('price', '<=', $request->keyword);
+                    });
+                } else {
+                    // If not numeric, search by brand_name
+                    $query->whereHas('models.brand', function ($query) use ($request) {
+                        $query->where('brand_name', $request->keyword);
+                    });
+                }
+            });
         }
 
-        // Pagination based on the number set; You can change the number below
         $perPage = 3;
-        return $query->paginate($perPage);
+        $vehicles = $query->paginate($perPage);
 
-        // Show all data; Uncomment if necessary
-        // return vehicle::all();
+        return $vehicles;
     }
 
     /**
@@ -43,8 +47,22 @@ class VehicleController extends Controller
      */
     public function all(Request $request)
     {
-        // Show data based on logged vehicle
-        return Vehicle::all();
+        // Query builder instance
+        $query = Vehicle::query();
+
+        // Cater Search use "keyword"
+        if ($request->keyword) {
+            $query->where(function ($query) use ($request) {
+                $query->where('VIN', 'like', '%' . $request->keyword . '%');
+            });
+        }
+
+        // Pagination based on the number set; You can change the number below
+        $perPage = 3;
+        return $query->paginate($perPage);
+
+        // Show all data; Uncomment if necessary
+        // return User::all();
     }
 
     /**
@@ -72,11 +90,43 @@ class VehicleController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Display the specified resource.combine vehicle, model, and brand
      */
     public function show(string $id)
     {
         return Vehicle::findOrFail($id);
+    }
+
+
+    /**
+     * Display the dealer for a specific vehicle.
+     */
+    public function viewDealer(string $id)
+    {
+        // Find the vehicle by id
+        $vehicle = Vehicle::find($id);
+
+        if (!$vehicle) {
+            // Handle the case where the vehicle is not found
+            return response()->json(['error' => 'Vehicle not found'], 404);
+        }
+
+        // Fetch the dealer information for the specified dealer_id of the vehicle
+        $dealer = Dealer::find($vehicle->dealer_id);
+
+        if (!$dealer) {
+            // Handle the case where the dealer is not found
+            return response()->json(['error' => 'Dealer not found'], 404);
+        }
+
+        // Fetch inventory items for the specified dealer_id
+        $dealerItems = Inventory::where('dealer_id', $vehicle->dealer_id)->get();
+
+        // You can customize the response format based on your needs
+        return response()->json(['dealer' => $dealer]);
+
+        // add this in return response if you want to get the information of the vehicle and inventory 
+        // 'vehicle' => $vehicle,'inventory' => $dealerItems
     }
 
     /**

@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\DealerController;
 use App\Http\Controllers\Api\EngineController;
@@ -13,6 +14,8 @@ use App\Http\Controllers\Api\VehicleController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\ManufacturerController;
+use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\QueryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -45,8 +48,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/user/{id}', [UserController::class, 'destroy']);
 
     //User Specific APIs = update of image based kong kinsa tong user nga ni log in
-    Route::get('/profile/show', [ProfileController::class, 'show']);
+    Route::get('/profile/show', [ProfileController::class, 'showProfile']);
     Route::put('/profile/image', [ProfileController::class, 'image'])->name('profile.image');
+    Route::get('/profile/inventory/show', [ProfileController::class, 'showInventory']);
 
     Route::controller(ManufacturerController::class)->group(function () {
         Route::get('/manufacturer',               'index');
@@ -78,6 +82,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/vehicle/{id}',          'show');
         Route::post('/vehicle',              'store');
         Route::put('/vehicle/{id}',          'update');
+        Route::get('/vehicle/dealer/{id}', 'viewDealer');
         Route::delete('/vehicle/{id}',       'destroy');
     });
 
@@ -94,6 +99,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/dealer/{id}',          'show');
         Route::post('/dealer',              'store');
         Route::put('/dealer/{id}',          'update');
+        Route::get('/dealer/inventory/{id}', 'viewInventory');
         Route::delete('/dealer/{id}',       'destroy');
     });
 
@@ -111,5 +117,25 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/supplier',              'store');
         Route::put('/supplier/{id}',          'update');
         Route::delete('/supplier/{id}',       'destroy');
+    });
+
+    Route::controller(InventoryController::class)->group(function () {
+        Route::get('/inventory',               'index');
+        Route::get('/inventory/{id}',          'show');
+        Route::post('/inventory',              'store');
+        Route::put('/inventory/{id}',          'update');
+        Route::delete('/inventory/{id}',       'destroy');
+    });
+
+    Route::controller(SaleController::class)->group(function () {
+        Route::get('/sale',               'index');
+        Route::get('/sale/{id}',          'show');
+        Route::post('/sale',              'store');
+        Route::put('/sale/{id}',          'update');
+        Route::delete('/sale/{id}',       'destroy');
+    });
+
+    Route::controller(QueryController::class)->group(function () {
+        Route::get('/sales/trends',               'salesTrends');
     });
 });

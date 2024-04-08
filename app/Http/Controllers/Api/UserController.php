@@ -35,12 +35,27 @@ class UserController extends Controller
     }
 
     /**
-     * Display a listing of the resource.
+     * Display a listing of the resource.-same to index
      */
     public function all(Request $request)
     {
-        // Show data based on logged user
-        return User::all();
+        // Query builder instance
+        $query = User::query();
+
+        // Cater Search use "keyword"
+        if ($request->keyword) {
+            $query->where(function ($query) use ($request) {
+                $query->where('lastname', 'like', '%' . $request->keyword . '%')
+                    ->orWhere('firstname', 'like', '%' . $request->keyword . '%');
+            });
+        }
+
+        // Pagination based on the number set; You can change the number below
+        $perPage = 3;
+        return $query->paginate($perPage);
+
+        // Show all data; Uncomment if necessary
+        // return User::all();
     }
 
     /**
@@ -84,9 +99,11 @@ class UserController extends Controller
      * Update the specified resource in storage.
      */
     public function update(UserRequest $request, string $id)
-    {
-        $validated = $request->validated();
+{
+    $validated = $request->validated();
 
+    // Check if a file was uploaded
+    if ($request->hasFile('image')) {
         // Upload Image to Backend and Store Image Path
         $validated['image'] = $request->file('image')->storePublicly('user', 'public');
 
@@ -103,6 +120,17 @@ class UserController extends Controller
 
         return $user;
     }
+    
+    // If no file was uploaded or if the file is not valid, proceed without updating the image
+    // Get Info by Id 
+    $user = User::findOrFail($id);
+
+    // Update New Info without modifying the image
+    $user->update($validated);
+
+    return $user;
+}
+
 
     /**
      * Remove the specified resource from storage.

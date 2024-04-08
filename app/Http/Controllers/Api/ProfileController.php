@@ -31,8 +31,32 @@ class ProfileController extends Controller
     /**
      * Display the specified information of the token bearer.
      */
-    public function show(Request $request)
+    public function showProfile(Request $request)
     {
         return $request->user();
+    }
+
+    /**
+     * Display the specified information (user and inventory) of the token bearer.
+     */
+    public function showInventory(Request $request)
+    {
+        // Get the user with their inventory
+        $user = $request->user()->load('inventory');
+
+        // If a keyword is provided, filter the inventory items
+        $keyword = $request->input('keyword');
+        $inventoryItems = $user->inventory();
+
+        if ($keyword) {
+            $inventoryItems->where('model_name', 'like', '%' . $keyword . '%')
+                ->orWhere('VIN', 'like', '%' . $keyword . '%')
+                ->orWhere('category', 'like', '%' . $keyword . '%');
+        }
+
+        // Paginate the filtered inventory items with 3 items per page (adjust as needed)
+        $inventoryItems = $inventoryItems->paginate(3);
+
+        return response()->json(['inventory' => $inventoryItems]);
     }
 }

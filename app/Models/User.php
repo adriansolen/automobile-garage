@@ -45,4 +45,14 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    /**
+ * Defines a one-to-many relationship with the Inventory model based on 'dealer_id'.
+ */
+    public function inventory()
+    {
+        return $this->hasMany(Inventory::class, 'dealer_id', 'dealer_id');
+    }
+    
 }
+
